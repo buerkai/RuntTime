@@ -27,4 +27,9 @@
 -(void)test_NSObject_conformsToProtocol;
 
 -(void)test_NSObject_performSelector;
+
+-(void)test_NSObject_copy;
+
+//测试runtimg
+-(void)test_runTime_01;
 @end

@@ -14,8 +14,12 @@
 
 @end
 
-@interface TestLoad : NSObject<TestProtocol>
+@interface TestLoad : NSObject<TestProtocol,NSMutableCopying,NSCopying>
+
+@property(nonatomic,strong)NSString *loadName;
 
 -(NSString *)getUserName;
 +(NSString *)getUserName2;
+
+-(NSString *)getURL:(NSString *)url withPort:(int)port;
 @end

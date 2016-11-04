@@ -29,6 +29,9 @@
     [_testArray addObject:@{@"name":@"测试NSObject respondsToSelector方法",@"action":@"test_NSObject_respondsToSelector"}];
     [_testArray addObject:@{@"name":@"测试NSObject conformsToProtocol方法",@"action":@"test_NSObject_conformsToProtocol"}];
      [_testArray addObject:@{@"name":@"测试NSObject performSelector方法",@"action":@"test_NSObject_performSelector"}];
+    [_testArray addObject:@{@"name":@"测试NSObject copy方法",@"action":@"test_NSObject_copy"}];
+    [_testArray addObject:@{@"name":@"测试Runtime01",@"action":@"test_runTime_01"}];
+
     
     long hash=self.hash;
      NSLog(@"%ld",hash);

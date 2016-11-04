@@ -8,6 +8,7 @@
 
 #import "RunTimeTest.h"
 #import "TestLoad.h"
+#import <objc/runtime.h>
 @implementation RunTimeTest
 
 +(void)load{
@@ -200,5 +201,202 @@
      //如果此处执行的是getUserName2，将会报异常，找不到此方法
      result=[test performSelector:NSSelectorFromString(@"getUserName")];
     NSLog(@"%@",result);
+}
+-(void)test_NSObject_copy{
+    TestLoad *load=[TestLoad new];
+    load.loadName=@"aaaaa";
+    NSDictionary *dd=@{@"key":@"value"};
+    NSDictionary *cc=[dd copy];
+    if (dd==cc) {
+        NSLog(@"1111");
+    }else{
+        NSLog(@"2222");
+    }
+    NSDictionary *bb=[dd mutableCopy];
+    if (dd==bb) {
+        NSLog(@"3");
+    }else{
+        NSLog(@"4");
+    }
+    TestLoad *b=[load mutableCopy];
+    NSLog(@"%@",b.loadName);
+
+    TestLoad *a=[load copy];
+    NSLog(@"%@",a.loadName);
+}
+
+-(void)test_runTime_01{
+    //
+    TestLoad *load=[TestLoad new];
+    load.loadName=@"testLoad....aadsf";
+    Class class01=object_getClass(load);
+    if (class01== [TestLoad class]) {
+        NSLog(@"q1");
+    }else{
+        NSLog(@"q2");
+    }
+    //object_isClass  判断是否是Class
+    NSLog(@"object_isClass %d",object_isClass(load));
+    NSLog(@"object_isClass %d",object_isClass(class01));
+    
+    //获取类名
+    const char *className00=object_getClassName(load);
+    NSLog(@"TestLoad class name is %s",className00);
+
+    //测试改变类
+    BOOL testChangeClass=NO;
+    if (testChangeClass) {
+        //设置Class
+        Class class02=object_setClass(load, [NSString class]);
+        if (class02) {
+            NSLog(@"修改Class成功");
+        }
+        //获取类名称
+        const char *className01=object_getClassName(load);
+        NSLog(@"TestLoad class name is %s",className01);
+        
+        SEL sel=NSSelectorFromString(@"uppercaseString");
+        if ([load respondsToSelector:sel]) {
+            //是从Class中检查是否有此方法
+            id out01=[load performSelector:sel];
+            NSLog(@"%@",out01);
+        }
+    }
+    
+    
+    
+    
+    //测试获取类属性
+    
+    BOOL testProp=NO;
+    if (testProp) {
+        const char *prop01Name="loadName";
+        //class_getClassVariable
+        Ivar prop01Var=class_getInstanceVariable(class01,prop01Name);
+        if (prop01Var) {
+            id prop01= object_getIvar(load, prop01Var);
+            NSLog(@"%@",prop01);
+        }else{
+            NSLog(@"属性不存在");
+        }
+        
+        //获取属性
+        unsigned int propCount=0;
+        Ivar *list= class_copyIvarList(class01,&propCount);
+        if (list) {
+            for (int i=0; i<propCount; i++) {
+                Ivar item=list[i];
+                //获取名称，都以_开头
+                const char *propName=ivar_getName(item);
+                //获取数据类型
+                const char *propType=ivar_getTypeEncoding(item);
+                 NSLog(@"属性名称：%s,type=%s",propName,propType);
+            
+               
+            }
+        }
+        free(list);
+       
+        
+        //获取属性
+        objc_property_t *props=class_copyPropertyList(class01, &propCount);
+        if (props) {
+            for (int i=0; i<propCount; i++) {
+                objc_property_t p=props[i];
+                //属性名称,不以_开头
+                const char* pname=property_getName(p);
+                const char * p_patr=property_getAttributes(p);
+                NSLog(@"pname=%s,属性=%s",pname,p_patr);
+                unsigned int pcount=0;
+                objc_property_attribute_t *ps=property_copyAttributeList(p, &pcount);
+                if (ps) {
+                    for (int n=0; n<pcount; n++) {
+                        objc_property_attribute_t pt=ps[i];
+                        NSLog(@"属性 name=%s,value=%s",pt.name,pt.value);
+                    }
+                }
+                free(ps);
+                //free(&pcount);
+            }
+        }
+        free(props);
+        
+        objc_property_t loadNamep=class_getProperty(class01, "loadName");
+        if (loadNamep) {
+            const char* pname=property_getName(loadNamep);
+            const char * p_patr=property_getAttributes(loadNamep);
+            NSLog(@"pname=%s,属性=%s",pname,p_patr);
+
+        }
+        
+    }
+    
+    //Method
+    BOOL testMethod=YES;
+    if (testMethod) {
+        unsigned int methodCount=0;
+        Method *methods=class_copyMethodList(class01, &methodCount);
+        for (int i=0; i<methodCount; i++) {
+            Method method=methods[i];
+            NSLog(@"方法名称:%@",NSStringFromSelector(method_getName(method)));
+            NSLog(@"方法参数个数:%d",method_getNumberOfArguments(method));
+            size_t returnTypeLen=1024;
+
+            char *retrurnType=(char*)malloc(returnTypeLen);
+            method_getReturnType(method, retrurnType, returnTypeLen);
+            NSLog(@"方法返回类型:%s,len=%ld",retrurnType,returnTypeLen);
+            free(retrurnType);
+           
+            //获取参数类型
+            unsigned int argCount=method_getNumberOfArguments(method);
+            if (argCount>0) {
+                for (int n=0; n<argCount; n++) {
+                    char *argType=method_copyArgumentType(method, n);
+                    NSLog(@"参数类型:%s",argType);
+                }
+            }
+             NSLog(@"----------");
+        }
+        
+        //获取对象方法-(NSString *)getUserName
+        Method test=class_getInstanceMethod(class01, NSSelectorFromString(@"getUserName"));
+        IMP testIMP=method_getImplementation(test);
+        id block= imp_getBlock(testIMP);
+        if (block) {
+            NSLog(@"%@",block);
+        }
+        //修改方法体
+        IMP createIMP=imp_implementationWithBlock((NSString *)^(void){
+            return @"cccccccc";
+        });
+        IMP retIMP= method_setImplementation(test, createIMP);
+        if (retIMP) {
+            NSLog(@"%@",[load getUserName]);
+        }
+        //再次获取方法体
+        testIMP=method_getImplementation(test);
+        block= imp_getBlock(testIMP);
+        if (block) {
+            NSLog(@"%@",block);
+        }
+        
+        
+        //动态添加方法
+        IMP insertIMP=imp_implementationWithBlock((NSString *)^(id target,NSString *p1,NSString *p2){
+            return [NSString  stringWithFormat:@" ret=%@,%@",p1,p2];
+        });
+        BOOL addOKMethod= class_addMethod(class01, NSSelectorFromString(@"getTest:withUserName"),insertIMP,0);
+        if (addOKMethod) {
+            NSLog(@"add method ret=%@",[load performSelector:NSSelectorFromString(@"getTest:withUserName") withObject:@"1111" withObject:@"2222"]);
+        }
+        
+        //获取类方法 +(NSString *)getUserName2;
+       Method getMethod= class_getClassMethod(class01, NSSelectorFromString(@"getUserName2"));
+        if (getMethod) {
+            NSLog(@"getUserName2 方法存在");
+            NSLog(@"方法返回值:%@",[class01 performSelector:NSSelectorFromString(@"getUserName2")]);
+        }
+                                                  
+    }
 }
 @end
